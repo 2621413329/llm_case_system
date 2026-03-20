@@ -1,0 +1,8 @@
+# 后端依赖（Python）
+# 可选：启用 MySQL 持久化时使用
+mysql-connector-python>=8.0.0
+# MySQL 持久化备用实现（纯 Python，更稳）
+pymysql>=1.0.0
+# OCR 本地（0 token）
+pytesseract>=0.3.10
+Pillow>=9.0.0

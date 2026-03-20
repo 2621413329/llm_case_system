@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.vite/
+
+uploads/
+data/
+*.log
+
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+.idea/
+
+config.local.json
