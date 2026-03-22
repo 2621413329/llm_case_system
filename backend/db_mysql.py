@@ -149,7 +149,7 @@ def init_database() -> tuple[bool, str]:
                 analysis_interaction TEXT NULL,
                 analysis_data JSON NULL,
                 analysis_generated_at VARCHAR(64) NOT NULL DEFAULT '',
-                manual JSON NULL COMMENT '{page_type, page_elements, buttons, fields, text_requirements, control_logic}'
+                `manual` JSON NULL COMMENT 'manual field: page_type, page_elements, buttons, fields, text_requirements, control_logic'
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """)
         # 页面元素表（支持元素级增删改查审计）
@@ -185,7 +185,7 @@ def init_database() -> tuple[bool, str]:
         )
         # 兼容旧库：如果缺少新字段，自动补齐
         for alter_sql in [
-            "ALTER TABLE screenshot_history ADD COLUMN IF NOT EXISTS manual JSON NULL COMMENT '{page_type, page_elements, buttons, fields, text_requirements, control_logic}'",
+            "ALTER TABLE screenshot_history ADD COLUMN IF NOT EXISTS `manual` JSON NULL COMMENT 'manual field: page_type, page_elements, buttons, fields, text_requirements, control_logic'",
             "ALTER TABLE screenshot_history ADD COLUMN IF NOT EXISTS analysis_style TEXT NULL",
             "ALTER TABLE screenshot_history ADD COLUMN IF NOT EXISTS analysis_content TEXT NULL",
             "ALTER TABLE screenshot_history ADD COLUMN IF NOT EXISTS analysis_interaction TEXT NULL",
@@ -420,7 +420,7 @@ def read_history() -> list[dict[str, Any]]:
     try:
         cur = conn.cursor()
         cur.execute(
-            "SELECT id, file_name, file_url, system_name, menu_structure, created_at, updated_at, analysis, analysis_style, analysis_content, analysis_interaction, analysis_data, analysis_generated_at, manual FROM screenshot_history ORDER BY id DESC"
+            "SELECT id, file_name, file_url, system_name, menu_structure, created_at, updated_at, analysis, analysis_style, analysis_content, analysis_interaction, analysis_data, analysis_generated_at, `manual` FROM screenshot_history ORDER BY id DESC"
         )
         rows = cur.fetchall()
         cur.close()
@@ -463,7 +463,7 @@ def write_history(items: list[dict[str, Any]]) -> None:
             cur.execute(
                 """INSERT INTO screenshot_history
                    (id, file_name, file_url, system_name, menu_structure, created_at, updated_at, analysis,
-                    analysis_style, analysis_content, analysis_interaction, analysis_data, analysis_generated_at, manual)
+                    analysis_style, analysis_content, analysis_interaction, analysis_data, analysis_generated_at, `manual`)
                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                 (
                     int(r.get("id", 0)),

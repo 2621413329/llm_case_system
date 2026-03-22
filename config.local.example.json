@@ -2,35 +2,28 @@
   "analysis": {
     "llm_vision": {
       "enabled": true,
-      "model": "qwen-vl-plus",
-      "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-      "api_key": ""
+      "model": "qwen-vl-plus"
     }
   },
   "ocr": {
-    "provider": "auto",
-    "netease_youdao": {
-      "app_key": "PUT_YOUR_YOUDAO_APP_KEY_HERE",
-      "app_secret": "PUT_YOUR_YOUDAO_APP_SECRET_HERE",
-      "lang_type": "zh-CHS"
-    },
+    "provider": "dashscope",
     "dashscope": {
-      "api_key": "PUT_YOUR_DASHSCOPE_API_KEY_HERE",
+      "api_key": "YOUR_DASHSCOPE_API_KEY",
       "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
       "model": "qwen-vl-ocr-2025-11-20"
     },
     "tesseract": {
-      "enabled": true,
+      "enabled": false,
       "lang": "chi_sim+eng",
       "cmd": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
     }
   },
   "mysql": {
+    "enabled": false,
     "host": "127.0.0.1",
     "port": 3306,
     "user": "root",
-    "password": "YOUR_MYSQL_PASSWORD",
+    "password": "",
     "database": "llm_case_system"
   }
 }
-

@@ -159,6 +159,8 @@ def _mysql_configured() -> bool:
     mysql = cfg.get("mysql")
     if not isinstance(mysql, dict):
         return False
+    if mysql.get("enabled") is False:
+        return False
     return bool(mysql.get("host")) and bool(mysql.get("user"))
 
 
