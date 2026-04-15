@@ -1,5 +1,23 @@
-import { createApp } from 'vue'
-import './style.css'
-import App from './App.vue'
+import { createApp } from 'vue';
+import { createPinia } from 'pinia';
+import ElementPlus from 'element-plus';
+import 'element-plus/dist/index.css';
+import * as ElementPlusIconsVue from '@element-plus/icons-vue';
+import router from './router';
+import { setUnauthorizedHandler } from './api/http';
+import { useAuthStore } from './stores/auth';
+import './style.css';
+import App from './App.vue';
 
-createApp(App).mount('#app')
+const app = createApp(App);
+const pinia = createPinia();
+app.use(pinia);
+app.use(ElementPlus);
+for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+  app.component(key, component);
+}
+setUnauthorizedHandler(() => {
+  useAuthStore().clearSession();
+});
+app.use(router);
+app.mount('#app');

@@ -1,0 +1,45 @@
+# 复制为 config/local.yaml 并填写 mysql.password；MySQL 连通且 auth.enabled 为 true 时即启用登录与 token 接口鉴权。
+# 环境变量可覆盖：AUTH_ENABLED=1 / AUTH_ALLOW_REGISTER=0 等。
+
+analysis:
+  llm_vision:
+    enabled: true
+    model: qwen-vl-plus
+    api_key: ""
+  case_generation:
+    enabled: true
+    model: qwen-vl-plus
+    api_key: ""
+    request_timeout: 180
+    temperature: 0.2
+    top_p: 0.9
+    max_tokens: 3600
+
+embedding:
+  model: paraphrase-multilingual-MiniLM-L12-v2
+  batch_size: 32
+
+ocr:
+  provider: dashscope
+  dashscope:
+    api_key: ""
+    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    model: qwen-vl-ocr-2025-11-20
+  tesseract:
+    enabled: false
+    lang: chi_sim+eng
+    cmd: C:\Program Files\Tesseract-OCR\tesseract.exe
+
+mysql:
+  # 无 MySQL 或服务未就绪时改为 false，后端使用 data/*.json；需要登录认证时请 true 并保证能连上库
+  enabled: true
+  host: 127.0.0.1
+  port: 3306
+  user: root
+  password: YOUR_MYSQL_PASSWORD
+  database: llm_case_system
+
+auth:
+  enabled: true
+  require_login: true
+  allow_register: true

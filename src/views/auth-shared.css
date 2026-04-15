@@ -1,0 +1,209 @@
+/* 登录 / 注册共用：与系统主色 #1677ff 一致，布局参考表单卡片风格 */
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  position: relative;
+  overflow: hidden;
+  background: #eef2f6;
+  font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+.auth-page::before {
+  content: '';
+  position: absolute;
+  width: 380px;
+  height: 380px;
+  left: -100px;
+  top: 8%;
+  background: radial-gradient(circle, rgba(22, 119, 255, 0.22) 0%, transparent 68%);
+  filter: blur(36px);
+  pointer-events: none;
+}
+
+.auth-page::after {
+  content: '';
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  right: -80px;
+  bottom: 12%;
+  background: radial-gradient(circle, rgba(22, 119, 255, 0.12) 0%, transparent 70%);
+  filter: blur(32px);
+  pointer-events: none;
+}
+
+.auth-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 440px;
+  padding: 36px 40px 32px;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
+}
+
+.auth-brand {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1677ff;
+  letter-spacing: 0.02em;
+  margin-bottom: 8px;
+}
+
+.auth-title {
+  text-align: center;
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 600;
+  color: #1f1f1f;
+}
+
+.auth-sub {
+  text-align: center;
+  margin: 0 0 28px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #8c8c8c;
+}
+
+.auth-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.auth-label {
+  flex: 0 0 72px;
+  text-align: right;
+  font-size: 13px;
+  color: #434343;
+  line-height: 1.3;
+}
+
+.auth-input-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.auth-input {
+  width: 100%;
+  height: 42px;
+  padding: 0 14px;
+  font-size: 14px;
+  color: #262626;
+  background: #f2f4f5;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.auth-input::placeholder {
+  color: #bfbfbf;
+}
+
+.auth-input:hover {
+  background: #eceff1;
+}
+
+.auth-input:focus {
+  background: #fff;
+  border-color: #1677ff;
+}
+
+.auth-hint {
+  margin: -8px 0 12px 84px;
+  font-size: 12px;
+  color: #8c8c8c;
+  line-height: 1.4;
+}
+
+.auth-err {
+  margin: 0 0 12px 84px;
+  font-size: 13px;
+  color: #cf1322;
+  line-height: 1.4;
+}
+
+.auth-err--block {
+  margin-left: 0;
+  text-align: center;
+}
+
+.auth-btn-primary {
+  width: 100%;
+  height: 44px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 999px;
+  background: #1677ff;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.auth-btn-primary:hover:not(:disabled) {
+  background: #4096ff;
+}
+
+.auth-btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.auth-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 22px;
+  font-size: 14px;
+  color: #8c8c8c;
+}
+
+.auth-link {
+  color: #1677ff;
+  text-decoration: none;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 28px 22px 24px;
+  }
+
+  .auth-field {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .auth-label {
+    flex: none;
+    text-align: left;
+  }
+
+  .auth-hint,
+  .auth-err {
+    margin-left: 0;
+  }
+
+}

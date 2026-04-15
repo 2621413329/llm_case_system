@@ -14,3 +14,15 @@ __pycache__/
 .idea/
 
 config.local.json
+config/local.yaml
+
+# 前端本地环境变量（含 VITE_API_ORIGIN 等）
+.env.local
+.env.*.local
+# 勿提交真实密钥（仅用 .env.example 说明变量名）
+.env
+
+# 本地/调试产物与备份
+test_output.txt
+tmpdup_*.png
+*.recover.*.vue

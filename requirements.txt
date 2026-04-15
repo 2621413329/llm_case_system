@@ -1,4 +1,9 @@
 # 后端依赖（Python）
+# 向量计算
+numpy>=1.24.0
+scikit-learn>=1.3.0
+# 需求向量库 embedding（Sentence-Transformers）
+sentence-transformers>=2.2.0
 # 可选：启用 MySQL 持久化时使用
 mysql-connector-python>=8.0.0
 # MySQL 持久化备用实现（纯 Python，更稳）
@@ -6,3 +11,7 @@ pymysql>=1.0.0
 # OCR 本地（0 token）
 pytesseract>=0.3.10
 Pillow>=9.0.0
+# 配置中心（YAML 支持）
+PyYAML>=6.0.0
+# 测试框架
+pytest>=7.0.0

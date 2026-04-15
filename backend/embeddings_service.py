@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import hashlib
 
 import numpy as np
 
@@ -10,20 +9,31 @@ _MODEL = None
 _MODEL_NAME = None
 
 
-def _provider() -> str:
-    """
-    默认使用“轻量哈希向量”，保证构建网络库不会因为首次下载模型而卡死。
-    如需更高质量 embedding，显式设置：
-      VECTOR_EMBEDDING_PROVIDER=sentence_transformers
-      VECTOR_EMBEDDING_MODEL=...
-    """
-    return (os.getenv("VECTOR_EMBEDDING_PROVIDER") or "hash").strip().lower()
-
-
 def _get_default_model() -> str:
-    # 默认一个中文/多语言效果相对不错的轻量模型
-    # 如需替换可在环境变量 VECTOR_EMBEDDING_MODEL 指定。
-    return os.getenv("VECTOR_EMBEDDING_MODEL") or "paraphrase-multilingual-MiniLM-L12-v2"
+    try:
+        from backend.config.loader import load_config
+        from backend.config.model_resolve import embedding_model as _emb_model
+
+        m = _emb_model(load_config())
+        if m:
+            return m
+    except Exception:
+        pass
+    return os.getenv("VECTOR_EMBEDDING_MODEL") or ""
+
+
+def _default_embed_batch_size() -> int:
+    try:
+        from backend.config.loader import load_config
+        from backend.config.model_resolve import embed_batch_size as _emb_bs
+
+        return _emb_bs(load_config())
+    except Exception:
+        pass
+    try:
+        return max(8, int(os.getenv("VECTOR_EMBED_BATCH_SIZE", "32")))
+    except Exception:
+        return 32
 
 
 def get_embedder(model_name: str | None = None):
@@ -46,55 +56,32 @@ def get_embedder(model_name: str | None = None):
     return _MODEL
 
 
-def _hash_embed(texts: list[str], *, dim: int = 384) -> list[list[float]]:
-    """
-    零依赖、快速的“向量化占位实现”。
-    - 使用字符 n-gram + 哈希桶构建向量
-    - 向量 L2 归一化，便于余弦相似度检索
-    """
-    dim = int(dim) if dim else 384
-    out: list[list[float]] = []
-    for t in texts:
-        t = str(t or "")
-        if not t:
-            out.append([0.0] * dim)
-            continue
-        vec = np.zeros((dim,), dtype=np.float32)
-        grams = [t[i : i + 3] for i in range(0, max(1, len(t) - 2))]
-        for g in grams:
-            h = int(hashlib.sha1(g.encode("utf-8")).hexdigest(), 16)
-            idx = h % dim
-            vec[idx] += 1.0
-        n = float(np.linalg.norm(vec))
-        if n > 0:
-            vec = vec / n
-        out.append(vec.tolist())
-    return out
-
-
-def embed_texts(texts: list[str], *, model_name: str | None = None, batch_size: int = 16) -> tuple[list[list[float]], str]:
+def embed_texts(
+    texts: list[str], *, model_name: str | None = None, batch_size: int | None = None
+) -> tuple[list[list[float]], str]:
     """
     返回 (embeddings, model_name)
-    embeddings: list of vectors
+    embeddings: list of vectors（Sentence-Transformers，L2 归一化）
     """
-    texts = [str(t or "").strip() for t in texts]
-    if not texts:
+    stripped = [str(t or "").strip() for t in texts]
+    if not stripped:
         return [], (model_name or "").strip() or _get_default_model()
-    # 保持输入长度一致：空内容也给一个占位，避免调用方对齐出错
-    texts = [t if t else " " for t in texts]
+    if not all(stripped):
+        if not any(stripped):
+            return [], (model_name or "").strip() or _get_default_model()
+        raise ValueError("embed_texts: 不允许在同一次调用中混入空字符串与非空字符串，请在调用方对每条文本分别过滤")
+    texts = stripped
 
-    provider = _provider()
-    if provider not in ["sentence_transformers", "st"]:
-        dim = int(os.getenv("VECTOR_HASH_DIM") or 384)
-        return _hash_embed(texts, dim=dim), "hash"
+    bs = int(batch_size) if batch_size is not None else _default_embed_batch_size()
+    if bs < 1:
+        bs = _default_embed_batch_size()
 
-    # provider=sentence_transformers：走真实 embedding（首次下载可能较慢）
     embedder = get_embedder(model_name)
     model_used = _MODEL_NAME or _get_default_model()
 
     vecs = embedder.encode(
         texts,
-        batch_size=batch_size,
+        batch_size=bs,
         normalize_embeddings=True,
         show_progress_bar=False,
     )
@@ -108,4 +95,3 @@ def embed_texts(texts: list[str], *, model_name: str | None = None, batch_size: 
 def embed_one(text: str, *, model_name: str | None = None) -> tuple[list[float], str]:
     vecs, used = embed_texts([text], model_name=model_name)
     return (vecs[0] if vecs else []), used
-

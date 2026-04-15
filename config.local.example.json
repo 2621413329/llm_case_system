@@ -2,8 +2,23 @@
   "analysis": {
     "llm_vision": {
       "enabled": true,
-      "model": "qwen-vl-plus"
+      "model": "qwen-vl-plus",
+      "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "api_key": ""
+    },
+    "case_generation": {
+      "enabled": true,
+      "model": "qwen-vl-plus",
+      "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "api_key": "",
+      "temperature": 0.2,
+      "top_p": 0.9,
+      "max_tokens": 3600
     }
+  },
+  "embedding": {
+    "model": "paraphrase-multilingual-MiniLM-L12-v2",
+    "batch_size": 32
   },
   "ocr": {
     "provider": "dashscope",
@@ -25,5 +40,10 @@
     "user": "root",
     "password": "",
     "database": "llm_case_system"
+  },
+  "auth": {
+    "enabled": true,
+    "require_login": true,
+    "allow_register": true
   }
 }

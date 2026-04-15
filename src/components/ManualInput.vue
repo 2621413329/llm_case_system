@@ -128,7 +128,6 @@
                   <option value="query">query</option>
                   <option value="create">create</option>
                   <option value="edit">edit</option>
-                  <option value="delete">delete</option>
                   <option value="export">export</option>
                   <option value="open">open</option>
                 </select>
@@ -148,7 +147,7 @@
               <input class="input" v-model="e.source_text" placeholder="命中词" style="max-width: 180px; margin-top: 6px;" />
             </td>
             <td>
-              <button class="btn btn-danger" @click="removeElement(idx)">删除</button>
+              <span class="muted">-</span>
             </td>
           </tr>
         </tbody>
@@ -167,8 +166,11 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useUiDialog } from '../composables/useUiDialog';
+import { listHistory, updateHistory } from '../api/history';
+import { generateOcrManualDraft, searchRequirementElements } from '../api/analysis';
+import { emitHistoryUpdated, subscribeHistoryUpdated } from '../composables/useHistorySync';
 
 const props = defineProps({
   type: {
@@ -211,9 +213,7 @@ const breadcrumb = (menuStructure) => {
 };
 
 const fetchHistory = async () => {
-  const resp = await fetch('/api/history');
-  if (!resp.ok) throw new Error('获取截图记录失败');
-  const data = await resp.json();
+  const data = await listHistory();
   history.value = (Array.isArray(data) ? data : []).map((r) => ({
     ...r,
     created_at: r.created_at || r.operation_time || '',
@@ -241,9 +241,7 @@ const generateSuggestions = async () => {
   isSuggesting.value = true;
   suggestHint.value = '';
   try {
-    const resp = await fetch(`/api/ocr/manual/${selectedId.value}`);
-    const data = await resp.json().catch(() => ({}));
-    if (!resp.ok) throw new Error(data.error || 'OCR建议生成失败');
+    const data = await generateOcrManualDraft(selectedId.value);
     const md = data.manual_draft || {};
     if (!Array.isArray(manual.value.page_elements)) manual.value.page_elements = [];
     const incoming = Array.isArray(md.page_elements) ? md.page_elements : [];
@@ -269,12 +267,7 @@ const generateSuggestions = async () => {
         (selectedRecord.value ? breadcrumb(selectedRecord.value.menu_structure) : '');
 
       try {
-        const resp2 = await fetch('/api/requirement-network/search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: query.slice(0, 1500), top_k: 25, unit_type: 'element' }),
-        });
-        const data2 = await resp2.json().catch(() => ({}));
+        const data2 = await searchRequirementElements({ query: query.slice(0, 1500), top_k: 25, unit_type: 'element' });
         const results2 = Array.isArray(data2.results) ? data2.results : [];
         if (Array.isArray(results2) && results2.length) {
           for (const r of results2) {
@@ -324,17 +317,9 @@ const saveManual = async (silent = false) => {
   isSaving.value = true;
   saveHint.value = '';
   try {
-    const resp = await fetch(`/api/history/${selectedId.value}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ manual: manual.value })
-    });
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error(err.error || '保存失败');
-    }
+    await updateHistory(selectedId.value, { manual: manual.value });
     await fetchHistory();
-    window.dispatchEvent(new Event('history-updated'));
+    emitHistoryUpdated();
     saveHint.value = silent ? '已自动保存补录' : '已保存（用例生成会基于该补录动态生成）';
   } catch (e) {
     console.error(e);
@@ -369,10 +354,6 @@ const addElement = () => {
   newElement.value = { name: '', element_type: 'button', ui_pattern: '按钮', validation: '' };
 };
 
-const removeElement = (idx) => {
-  manual.value.page_elements.splice(idx, 1);
-};
-
 watch(selectedId, () => {
   saveHint.value = '';
   loadFromRecord();
@@ -384,10 +365,10 @@ onMounted(async () => {
   } catch (e) {
     console.error(e);
   }
-});
-
-window.addEventListener('history-updated', () => {
-  fetchHistory().catch(() => {});
+  const unsubscribe = subscribeHistoryUpdated(() => {
+    fetchHistory().catch(() => {});
+  });
+  onUnmounted(() => unsubscribe());
 });
 </script>
 

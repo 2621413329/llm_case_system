@@ -68,11 +68,34 @@ LLM/
    - `python backend\simple_server.py`
 2. 再启动前端：`npm run dev`
 
+### 前端 API 代理与 404 说明
+
+- `npm run dev` 与 `npm run preview` 已通过 Vite 将 `/api`、`/uploads` 代理到 `http://127.0.0.1:5000`，接口应能正常访问。
+- 若你用**其它静态服务器**托管 `dist` 且**没有**把 `/api` 转到后端，请求会 404（前端提示「请求的资源不存在」）。可复制项目根目录的 `.env.example` 为 `.env.local`，设置 `VITE_API_ORIGIN=http://127.0.0.1:5000` 后重新执行 `npm run build`（后端需允许跨域，本项目 API 已带宽松 CORS）。
+
 ## 数据存储（MySQL 与 JSON）
 
 - **未配置 MySQL**：数据仅存于前端可见的 `data/history.json`、`data/cases.json` 与 `uploads/`。
 - **配置 MySQL**：在 `config.local.json` 中增加 `mysql` 段（参见 `config.local.example.json`），后端会自动创建本地库 **`llm_case_system`** 及表 **`screenshot_history`**、**`test_cases`**，并将系统记录与用例持久化到 MySQL。
 - 建库建表也可单独执行：`python scripts/init_mysql_db.py`（需先配置 `config.local.json` 中的 `mysql`）。
+
+## 配置管理（JSON + YAML）
+
+后端现已支持统一配置加载，推荐使用 `config/` 目录中的 YAML 文件：
+
+- `config/default.yaml`：默认配置（可提交）
+- `config/local.yaml`：本地覆盖配置（请勿提交，已加入 `.gitignore`）
+- `config.local.json`：历史兼容配置（仍可用，建议逐步迁移到 `config/local.yaml`）
+
+配置覆盖优先级：
+
+- `config/default.yaml` < `config.local.json` < `config/local.yaml` < 环境变量
+
+常用环境变量（用于覆盖敏感项）：
+
+- `DASHSCOPE_API_KEY`
+- `MYSQL_HOST` / `MYSQL_PORT` / `MYSQL_USER` / `MYSQL_PASSWORD` / `MYSQL_DATABASE`
+- `LLM_VISION_API_KEY` / `CASE_GEN_API_KEY`
 
 ## 目录约定
 - 后端默认走 `backend/simple_server.py`，数据落地到 `data/`（或 MySQL 的 `llm_case_system`）与 `uploads/`。
@@ -88,6 +111,30 @@ LLM/
 - `GET /api/history` - 获取历史记录
 - `DELETE /api/history/:id` - 删除历史记录
 - `GET /uploads/:filename` - 访问上传的文件
+
+### POST 风格 CRUD（新增，兼容原接口）
+
+- `POST /api/history/list` - 历史记录列表（可传 `{id}` 过滤）
+- `POST /api/history/detail` - 历史详情（`{id}`）
+- `POST /api/history/create` - 新建历史记录（`{file_name, ...}`）
+- `POST /api/history/update` - 更新历史记录（`{id, ...}`）
+- `POST /api/history/delete` - 删除历史记录（`{id}`）
+- `POST /api/cases/list` - 用例列表（可传 `{history_id}` 过滤）
+- `POST /api/cases/detail` - 用例详情（`{id}`）
+- `POST /api/cases/create` - 新建用例（`{title, steps, ...}`）
+- `POST /api/cases/update` - 更新用例（`{id, ...}`）
+- `POST /api/cases/delete` - 删除用例（`{id}`）
+
+### 需求分析/向量接口（POST）
+
+- `POST /api/requirement/analysis/generate`（兼容 `/api/requirement-analysis/generate`）
+- `POST /api/requirement/vector/analyze`（兼容 `/api/requirement-vector/analyze`）
+- `POST /api/requirement/network/build`（兼容 `/api/requirement-network/build`）
+- `POST /api/requirement/network/search`（兼容 `/api/requirement-network/search`）
+
+完整接口契约（字段级请求/响应、错误语义、SSE 约定）请见：
+
+- `docs/API_CONTRACT.md`
 
 ### 前端功能
 

@@ -1,24 +1,22 @@
 <template>
-  <div class="llm-analysis">
+  <div class="llm-analysis page">
     <div class="page-header">
       <h1>LLM 分析系统交互</h1>
       <p>基于 OCR 识别结果，预填“手动补录”字段/按钮并联动用例生成</p>
     </div>
 
-    <div class="card">
-      <h2>选择截图</h2>
+    <el-card class="app-card" shadow="never">
+      <h2>选择需求</h2>
 
       <div class="form-group">
-        <label>截图记录</label>
-        <select class="input" v-model="selectedId">
-          <option value="">请选择</option>
-          <option v-for="r in records" :key="r.id" :value="String(r.id)">
-            {{ r.created_at }} - {{ r.file_name }}
-          </option>
-        </select>
+        <label>需求记录</label>
+        <el-select v-model="selectedId" placeholder="请选择" style="width: 100%;">
+          <el-option value="" label="请选择" />
+          <el-option v-for="r in records" :key="r.id" :value="String(r.id)" :label="`${r.created_at} - ${r.file_name}`" />
+        </el-select>
       </div>
 
-      <div v-if="selectedRecord" class="card" style="margin-top: 16px;">
+      <el-card v-if="selectedRecord" class="app-card" shadow="never" style="margin-top: 16px;">
         <h3>预览</h3>
         <div style="display:grid; grid-template-columns: 1fr 360px; gap: 16px; align-items:start;">
           <div style="border: 1px solid #eee; border-radius: 8px; background:#fafafa; padding: 12px; text-align:center;">
@@ -36,27 +34,26 @@
               </div>
             </div>
             <div style="display:flex; gap: 8px;">
-              <button class="btn btn-default" @click="fetchHistory" :disabled="isGenerating || isSavingManual">刷新列表</button>
-              <button class="btn btn-primary" @click="generateAnalysis" :disabled="isGenerating || isSavingManual">
+              <el-button @click="fetchHistory" :disabled="isGenerating || isSavingManual">刷新列表</el-button>
+              <el-button type="primary" @click="generateAnalysis" :disabled="isGenerating || isSavingManual">
                 {{ isGenerating ? '生成中...' : '生成分析' }}
-              </button>
+              </el-button>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </el-card>
+    </el-card>
 
-    <!-- OCR 分析弹窗：预览截图 + 可填写被测字段（保存将写入 history.manual） -->
-    <div class="modal-mask" v-if="manualModalOpen" @click.self="manualModalOpen=false">
-      <div class="modal card">
+    <!-- OCR 分析弹窗：预览需求 + 可填写被测字段（保存将写入 history.manual） -->
+    <el-dialog v-model="manualModalOpen" title="OCR 建议的被测项（可编辑）" width="980px" align-center>
         <div style="display:flex; justify-content: space-between; align-items:center; gap:12px;">
           <div style="font-weight:700;">OCR 建议的被测项（可编辑）</div>
-          <button class="btn btn-default" @click="manualModalOpen=false" :disabled="isGenerating || isSavingManual">关闭</button>
+          <el-button @click="manualModalOpen=false" :disabled="isGenerating || isSavingManual">关闭</el-button>
         </div>
 
         <div style="display:grid; grid-template-columns: 1fr 420px; gap: 16px; margin-top: 12px;">
           <div style="border:1px solid #eee; border-radius:8px; background:#fafafa; padding:10px;">
-            <div style="color:#666; font-size:13px; margin-bottom:8px;">截图预览</div>
+            <div style="color:#666; font-size:13px; margin-bottom:8px;">需求预览</div>
             <img
               v-if="selectedRecord"
               :src="selectedRecord.file_url"
@@ -259,21 +256,23 @@
             </div>
 
             <div style="display:flex; gap:12px; margin-top: 16px;">
-              <button class="btn btn-default" @click="manualModalOpen=false" :disabled="isGenerating || isSavingManual">取消</button>
-              <button class="btn btn-primary" @click="saveManualDraft" :disabled="isGenerating || isSavingManual || !selectedId">
+              <el-button @click="manualModalOpen=false" :disabled="isGenerating || isSavingManual">取消</el-button>
+              <el-button type="primary" @click="saveManualDraft" :disabled="isGenerating || isSavingManual || !selectedId">
                 {{ isSavingManual ? '保存中...' : '保存' }}
-              </button>
+              </el-button>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useUiDialog } from '../composables/useUiDialog';
+import { listHistory, updateHistory } from '../api/history';
+import { generateAnalysisByHistoryId, generateOcrManualDraft } from '../api/analysis';
+import { emitHistoryUpdated, subscribeHistoryUpdated } from '../composables/useHistorySync';
 
 const records = ref([]);
 const selectedId = ref('');
@@ -309,9 +308,7 @@ const selectedRecord = computed(() => {
 });
 
 const fetchHistory = async () => {
-  const resp = await fetch('/api/history');
-  if (!resp.ok) throw new Error('获取截图记录失败');
-  const data = await resp.json();
+  const data = await listHistory();
   records.value = (Array.isArray(data) ? data : []).map((r) => ({
     ...r,
     created_at: r.created_at || r.operation_time || '',
@@ -468,28 +465,16 @@ const generateAnalysis = async () => {
   isGenerating.value = true;
   try {
     // 1) 生成并保存本次分析（覆盖为最新一次）
-    const aResp = await fetch(`/api/analyze/${selectedId.value}`);
-    const aData = await aResp.json().catch(() => ({}));
-    if (!aResp.ok) throw new Error(aData.error || '分析生成失败');
+    const aData = await generateAnalysisByHistoryId(selectedId.value);
     const latestAnalysis = String(aData.analysis || '');
     analysisText.value = latestAnalysis;
     candidateItems.value = extractCandidates(latestAnalysis);
     if (latestAnalysis) {
-      const saveResp = await fetch(`/api/history/${selectedId.value}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ analysis: latestAnalysis }),
-      });
-      if (!saveResp.ok) {
-        const err = await saveResp.json().catch(() => ({}));
-        throw new Error(err.error || '分析保存失败');
-      }
+      await updateHistory(selectedId.value, { analysis: latestAnalysis });
     }
 
     // 2) 生成 OCR 建议补录弹窗
-    const resp = await fetch(`/api/ocr/manual/${selectedId.value}`);
-    if (!resp.ok) throw new Error('生成失败');
-    const data = await resp.json();
+    const data = await generateOcrManualDraft(selectedId.value);
     manualDraft.value = data.manual_draft || { page_type: '', buttons: [], fields: [], control_logic: '' };
     if (!Array.isArray(manualDraft.value.buttons)) manualDraft.value.buttons = [];
     if (!Array.isArray(manualDraft.value.fields)) manualDraft.value.fields = [];
@@ -502,7 +487,7 @@ const generateAnalysis = async () => {
 
     fieldHints.value = Array.isArray(data.field_hints) ? data.field_hints : [];
     await fetchHistory();
-    window.dispatchEvent(new Event('history-updated'));
+    emitHistoryUpdated();
     manualModalOpen.value = true;
   } catch (e) {
     console.error(e);
@@ -583,18 +568,10 @@ const saveManualDraft = async () => {
       control_logic: manualDraft.value.control_logic || '',
     };
 
-    const resp = await fetch(`/api/history/${selectedId.value}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ manual: payload }),
-    });
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error(err.error || '保存失败');
-    }
+    await updateHistory(selectedId.value, { manual: payload });
 
     await fetchHistory();
-    window.dispatchEvent(new Event('history-updated'));
+    emitHistoryUpdated();
     manualModalOpen.value = false;
     await alertDialog('已保存补录（用于后续用例生成）');
   } catch (e) {
@@ -610,18 +587,10 @@ const saveAnalysis = async () => {
   isSaving.value = true;
   saveHint.value = '';
   try {
-    const resp = await fetch(`/api/history/${selectedId.value}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ analysis: analysisText.value })
-    });
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error(err.error || '保存失败');
-    }
+    await updateHistory(selectedId.value, { analysis: analysisText.value });
     await fetchHistory();
-    window.dispatchEvent(new Event('history-updated'));
-    saveHint.value = '已保存到截图记录（截图预览页可查看）';
+    emitHistoryUpdated();
+    saveHint.value = '已保存到需求记录（需求预览页可查看）';
   } catch (e) {
     console.error(e);
     await alertDialog(`保存失败: ${e.message}`);
@@ -647,10 +616,10 @@ onMounted(async () => {
   } catch (e) {
     console.error(e);
   }
-});
-
-window.addEventListener('history-updated', () => {
-  fetchHistory().catch(() => {});
+  const unsubscribe = subscribeHistoryUpdated(() => {
+    fetchHistory().catch(() => {});
+  });
+  onUnmounted(() => unsubscribe());
 });
 </script>
 

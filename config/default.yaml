@@ -1,0 +1,49 @@
+analysis:
+  llm_vision:
+    enabled: true
+    model: qwen-vl-plus
+    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    api_key: ""
+  case_generation:
+    enabled: true
+    model: qwen-vl-plus
+    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    api_key: ""
+    request_timeout: 180
+    temperature: 0.2
+    top_p: 0.9
+    max_tokens: 3600
+
+# 本地向量库（Sentence-Transformers）；模型名与批大小均由此处配置，环境变量可覆盖（见 loader）
+embedding:
+  model: paraphrase-multilingual-MiniLM-L12-v2
+  batch_size: 32
+
+ocr:
+  provider: auto
+  netease_youdao:
+    app_key: ""
+    app_secret: ""
+    lang_type: zh-CHS
+  dashscope:
+    api_key: ""
+    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    model: qwen-vl-ocr-2025-11-20
+  tesseract:
+    enabled: true
+    lang: chi_sim+eng
+    cmd: C:\Program Files\Tesseract-OCR\tesseract.exe
+
+mysql:
+  enabled: true
+  host: 127.0.0.1
+  port: 3306
+  user: root
+  password: ""
+  database: llm_case_system
+
+# 认证：MySQL 可用且 enabled 为 true 时，仅 GET /api/auth/config、POST /api/auth/login、POST /api/auth/register 可匿名；其余 /api/*（含 /api/auth/me、/api/auth/logout）须携带有效 token
+auth:
+  enabled: true
+  require_login: true
+  allow_register: true
